@@ -13,7 +13,7 @@
     // take time to execute.
     ThunkableWebviewerExtension.receiveMessageWithReturnValue(function(message, callback) {
       if (message === 'slow message') {
-        setTimeout(() => callback('slow response'), 4000);
+        setTimeout(() => callback(message), 4000);
       } else {
         callback('fast response');
       }
