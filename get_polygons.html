@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://thunkable.github.io/webviewer-extension/thunkableWebviewerExtension.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <span id="messageDisplay"></span>
+    <br />
+    <button type="button" id="messageButton">Click to send a test message</button>
+  </body>
+  <script type="text/javascript">
+    // Test button — sends message to app manually
+    document.getElementById('messageButton').onclick = function() {
+      ThunkableWebviewerExtension.postMessage('ready');
+    };
+
+    // When a message is received from the app
+    ThunkableWebviewerExtension.receiveMessageWithReturnValue(function(message, callback) {
+      try {
+        // Attempt to parse incoming GeoJSON text
+        const geojson = JSON.parse(message);
+        
+        // Check that it’s a FeatureCollection
+        if (geojson.type !== "FeatureCollection" || !geojson.features) {
+          callback("Error: Not a valid GeoJSON FeatureCollection");
+          return;
+        }
+
+        // Reformat polygons into a clean list
+        const formatted = geojson.features.map(feature => {
+          const name = feature.properties?.Name || "Unnamed";
+          const coords = feature.geometry?.coordinates || [];
+          return {
+            name: name,
+            coordinates: coords
+          };
+        });
+
+        // Send all polygons back as one stringified list
+        callback(JSON.stringify(formatted));
+
+      } catch (err) {
+        // If the message wasn’t valid JSON, send an error
+        callback("Error parsing GeoJSON: " + err.message);
+      }
+    });
+  </script>
+</html>
