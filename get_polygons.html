@@ -9,38 +9,39 @@
     <button type="button" id="messageButton">Click to send a test message</button>
   </body>
   <script type="text/javascript">
-    // Test button — sends message to app manually
+    // Simple test button
     document.getElementById('messageButton').onclick = function() {
       ThunkableWebviewerExtension.postMessage('ready');
     };
 
-    // When a message is received from the app
+    // Main message handler
     ThunkableWebviewerExtension.receiveMessageWithReturnValue(function(message, callback) {
       try {
-        // Attempt to parse incoming GeoJSON text
         const geojson = JSON.parse(message);
-        
-        // Check that it’s a FeatureCollection
+
         if (geojson.type !== "FeatureCollection" || !geojson.features) {
           callback("Error: Not a valid GeoJSON FeatureCollection");
           return;
         }
 
-        // Reformat polygons into a clean list
-        const formatted = geojson.features.map(feature => {
-          const name = feature.properties?.Name || "Unnamed";
-          const coords = feature.geometry?.coordinates || [];
-          return {
-            name: name,
-            coordinates: coords
-          };
+        // Convert all features
+        const formattedPolygons = geojson.features.map(feature => {
+          const geom = feature.geometry;
+          if (!geom || geom.type !== "Polygon") return [];
+
+          // Each polygon can have multiple rings, we’ll use the outer one (index 0)
+          const coords = geom.coordinates[0].map(coordPair => {
+            const [lon, lat] = coordPair;
+            return { latitude: lat, longitude: lon };
+          });
+
+          return coords;
         });
 
-        // Send all polygons back as one stringified list
-        callback(JSON.stringify(formatted));
+        // Send back everything as one big list of polygons
+        callback(JSON.stringify(formattedPolygons));
 
       } catch (err) {
-        // If the message wasn’t valid JSON, send an error
         callback("Error parsing GeoJSON: " + err.message);
       }
     });
